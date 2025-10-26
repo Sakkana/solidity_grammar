@@ -61,6 +61,7 @@ contract main {
     }
 
     // 数据存消耗 gas 排序：storage（链上） > memory（临时内存，不上链） > calldata（临时内存，无法修改）
+    // 目的是根据不同的存储类型，节省链上有限的存储空间和降低 gas 费用
     // reference type: array, struct
     
     // calldata
@@ -109,5 +110,72 @@ contract main {
         return (1 wei, 1 gwei, 1 ether);
     }
 
-    
+    // 时间单位
+    // 可以执行很多定时任务
+    function timeUnit() external pure returns(uint, uint, uint, uint, uint) {
+        assert(1 seconds == 1);
+        
+        assert(1 minutes == 60);
+        assert(1 minutes == 60 seconds);
+        
+        assert(1 hours == 3600);
+        assert(1 hours == 60 minutes);
+
+        assert(1 days == 86400);
+        assert(1 days == 24 hours);
+
+        assert(1 weeks == 604800);
+        assert(1 weeks == 7 days);
+
+        return (1 seconds, 1 minutes, 1 hours, 1 days, 1 weeks);
+    }
+
+    uint[] arrNotFixed;
+
+    function arrayPush() external returns(uint[] memory, uint){
+        // 定长数组
+        uint[5] memory arr = [uint(1), 2, 3, 4, 5];
+        
+        arrNotFixed = arr;
+        arrNotFixed.push(6);
+        arrNotFixed.push(7);
+
+        return (arrNotFixed, arrNotFixed.length);
+    }
+
+    // 结构体
+    struct Student {
+        uint256 id;
+        uint256 score;
+        bytes name;
+    }
+
+    Student student;
+
+    function init_student_by_assign() external returns (Student memory){
+        Student storage _student = student;
+        _student.id = 123;
+        _student.score = 99;
+        _student.name = "Alice";
+        return _student;
+    }
+
+    function init_student_by_direct() external {
+        student.id = 456;
+        student.score = 88;
+        student.name = "Bob";
+    }
+
+    function init_student_by_constructor() external {
+        student = Student(1, 2, "3");
+    }
+
+    function init_student_by_kv() external {
+        student = Student({
+            id: 0,
+            score: 2,
+            name: "-2"
+        });
+    }
+
 }
