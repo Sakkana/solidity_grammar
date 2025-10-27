@@ -8,6 +8,9 @@ contract main {
     
     // 构造函数
     constructor(){}
+    // constructor(address initialOwner){
+    //     owner = initialOwner;
+    // }
     
     function add() external {
         num = num + 1;
@@ -178,4 +181,132 @@ contract main {
         });
     }
 
+    // 映射
+    // key 只能用内置类型
+    // 存储位置必须是 storage，可以用于【合约变量】、【函数中的 storage 变量】和【library 函数的参数】
+    mapping (uint => address) public idToAddress;
+
+    function testMapping() public returns(address) {
+        idToAddress[1] = 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4;
+        return idToAddress[1];
+    }
+
+    // 修饰器，在函数调用前执行
+    address owner;
+    modifier onlyOwner(uint x) {
+        x = 666;
+        require(msg.sender == owner);
+        _;
+    }
+
+    function changeOwner(address newOwner) external onlyOwner(12) {
+        owner = newOwner;
+    }
+
+    // 事件
+    // 事件声明，indexed 会被记录在 EVM 日志中
+    event Transfer (address indexed from, address indexed to, uint256 value);
+    
+    mapping(address => uint256) public _balance;
+
+
+    // 0x5B38Da6a701c568545dCfcB03FcB875f56beddC4
+    // 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2
+    function _transfer (
+        address from,
+        address to,
+        uint256 amount
+    ) external {
+        _balance[from] = 10000000;
+        _balance[from] -= amount;
+        _balance[to] += amount;
+
+        // 释放事件
+        emit Transfer(from, to, amount);
+    }
 }
+
+// 继承
+// 1. 普通继承，父合约要再函数上加 virtual，子合约要写 override
+// 2. 多重继承，要按照顺序写，先写爷爷、再写爸爸；如果一个函数在爷爷和爸爸都存在，儿子必须重写，并且在 override 后面填进去爷爷和爸爸的名字
+// 3. 菱形继承，super 会调用被一个被继承的合约里的函数
+
+contract Yeye {
+    event Log(string msg);
+    
+    // 定义3个function: hip(), pop(), yeye()，Log值为Yeye。
+    function hip() public virtual{
+        emit Log("Yeye");
+    }
+
+    function pop() public virtual{
+        emit Log("Yeye");
+    }
+
+    function yeye() public virtual {
+        emit Log("Yeye");
+    }
+}
+
+contract Baba is Yeye{
+    // 继承两个function: hip()和pop()，输出改为Baba。
+    function hip() public virtual override{
+        emit Log("Baba");
+    }
+
+    function pop() public virtual override{
+        emit Log("Baba");
+    }
+
+    function baba() public virtual{
+        emit Log("Baba");
+    }
+}
+
+
+contract God {
+    event Log(string message);
+
+    function foo() public virtual {
+        emit Log("God.foo called");
+    }
+
+    function bar() public virtual {
+        emit Log("God.bar called");
+    }
+}
+
+contract Adam is God {
+    function foo() public virtual override {
+        emit Log("Adam.foo called");
+        super.foo();
+    }
+
+    function bar() public virtual override {
+        emit Log("Adam.bar called");
+        super.bar();
+    }
+}
+
+contract Eve is God {
+    function foo() public virtual override {
+        emit Log("Eve.foo called");
+        super.foo();
+    }
+
+    function bar() public virtual override {
+        emit Log("Eve.bar called");
+        super.bar();
+    }
+}
+
+contract people is Adam, Eve {
+    function foo() public override(Adam, Eve) {
+        super.foo();
+    }
+
+    function bar() public override(Adam, Eve) {
+        super.bar();
+    }
+}
+
