@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
+
 contract main {
     // 合约内函数外的都是 state variable
     // 存储在链上
@@ -307,6 +311,127 @@ contract people is Adam, Eve {
 
     function bar() public override(Adam, Eve) {
         super.bar();
+    }
+}
+
+// 抽象合约
+// 和 C++ 非常类似，如果合约内有一个函数没有 compound，那么这个合约必须用 abstarct 修饰，用来被人继承
+abstract contract Base {
+    string public name = "I am abstract contract.";
+    function getAlias() public pure virtual returns(string memory);
+}
+
+contract BaseImpl is Base {
+    function getAlias() public pure override returns(string memory) {
+        return ("hello");
+    } 
+}
+
+
+// 接口，和抽象合约类似，不实现任何功能
+// 1. 不能包含状态变量、构造函数、不能继承非接口的合约、所有函数都是 external
+// 2. 继承接口的合约必须实现所有函数
+contract interactBAYC {
+    // 利用BAYC地址创建接口合约变量（ETH主网）
+    IERC721 BAYC = IERC721(0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D);
+
+    // 通过接口调用BAYC的balanceOf()查询持仓量
+    function balanceOfBAYC(address owner) external view returns (uint256 balance){
+        return BAYC.balanceOf(owner);
+    }
+
+    // 通过接口调用BAYC的safeTransferFrom()安全转账
+    function safeTransferFromBAYC(address from, address to, uint256 tokenId) external{
+        BAYC.safeTransferFrom(from, to, tokenId);
+    }
+
+    // library
+    using Strings for uint256;
+    function getString1(uint256 _number) external pure returns(string memory) {
+        // 库合约中的函数被 using 之后可以直接被调
+        return _number.toHexString();
+    }
+}
+
+// 回调函数，用于 接收 ETH
+contract CallbackFunction {
+    // Solidity 支持两种回调用函数： receive 和 fallback
+    // 接收 ETH 的时候这俩二选一
+    /**
+            触发fallback() 还是 receive()?
+                接收ETH
+                    |
+                msg.data是空？
+                    /  \
+                是    否
+                /      \
+        receive()存在?   fallback()
+                / \
+            是  否
+            /     \
+        receive()   fallback()
+    **/
+
+    event Received(address Sender, uint256 Value);
+
+    receive () external payable {
+        emit Received(msg.sender, msg.value);
+    }
+    
+    event fallbackCalled(address Sender, uint Value, bytes Data);
+    
+    fallback() external payable{
+        emit fallbackCalled(msg.sender, msg.value, msg.data);
+    }
+}
+
+// 接收 ETH
+contract ReceiveETH {
+    // 收到 ETH，记录 amount 和 gas
+    event Log(uint256 amount, uint256 gas);
+
+    // receive 函数，接收 ETH 时触发
+    receive() external payable {
+        emit Log(msg.value, gasleft());
+    }
+
+    // 返回合约的 ETH 余额
+    function getBalance() public view returns (uint){
+        return address(this).balance;
+    }
+}
+
+// 发送 ETH
+contract SendETH {
+    // 构造函数，payable使得部署的时候可以转 eth 进去
+    constructor() payable{}
+
+    // receive 方法，接收eth时被触发
+    receive() external payable{}
+
+    // 三种发送方法
+    // 1. transfer，gas 限制 2300，如果失败会 revert
+    function transferETH(address payable _to, uint256 amount) external payable {
+        _to.transfer(amount);
+    }
+
+    // 2. send，gas 限制 2300，对方的 receive/fallback 不能太复杂，失败不会 revert
+    // 几乎没有人用
+    
+    // 用 send 发送 ETH 失败 error
+    error SendFailed(); 
+
+    function sendETH(address payable _to, uint256 amount) external payable {
+        bool success = _to.send(amount);
+        if (!success) {
+            revert SendFailed();
+        }
+    }
+
+    // 3. call，没有 gas 限制，支持对方合约的复杂 receive/fallback 实现，失败不会 revert
+    // 最优选择
+    function callETH(address payable _to, uint256 amount) external payable {
+        
     }
 }
 
